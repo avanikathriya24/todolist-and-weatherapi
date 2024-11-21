@@ -10,14 +10,12 @@ const Weather = () => {
 
   const apiKey = 'e0d206a71dd641e550e37b8e68b2cb36';
   
-  // Convert temperature from Kelvin to Celsius
   const kelvinToCelsius = (kelvin) => {
-    return (kelvin - 273.15).toFixed(2);  // Celsius
+    return (kelvin - 273.15).toFixed(2);  
   };
 
 
   useEffect(() => {
-    // Automatically fetch weather for user's location when the component mounts
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (position) => {
         await fetchWeatherByCoordinates(position.coords.latitude, position.coords.longitude);

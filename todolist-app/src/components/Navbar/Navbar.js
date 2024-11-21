@@ -21,6 +21,9 @@ function Navbar() {
           <li className="nav-item">
             <Link to="/weather" className="nav-link">WEATHER</Link>
           </li>
+          <li className="nav-item">
+            <Link to="/products" className="nav-link">PRODUCTS</Link>
+          </li>
           
    
         </ul>
