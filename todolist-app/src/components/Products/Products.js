@@ -5,6 +5,7 @@ import { faShoppingCart } from '@fortawesome/free-solid-svg-icons';
 import { useCart } from './CartContex';
 import './Product.css';
 
+// Fetch products from the API
 const fetchProducts = async () => {
   const response = await fetch('https://fakestoreapi.com/products');
   if (!response.ok) {
@@ -13,6 +14,7 @@ const fetchProducts = async () => {
   return response.json();
 };
 
+
 const ProductCard = ({ product }) => {
   const { addToCart } = useCart();
 
@@ -20,9 +22,12 @@ const ProductCard = ({ product }) => {
     addToCart(product);
   };
 
+  const { rating = { rate: 0, count: 0 }, image } = product; // Ensure image exists
+
   return (
     <div className="product-card">
-      <img src={product.image} alt={product.title} />
+      {/* Show image or a placeholder if not available */}
+      <img src={image || 'default-placeholder.jpg'} alt={product.title} />
       <div className="product-info">
         <h3 className="product-title">{product.title}</h3>
         <div className="product-rating">
@@ -30,18 +35,22 @@ const ProductCard = ({ product }) => {
             {Array.from({ length: 5 }, (_, index) => (
               <FaStar
                 key={index}
-                color={index < Math.floor(product.rating.rate) ? '#ff9900' : '#e4e5e9'}
+                color={index < Math.floor(rating.rate) ? '#ff9900' : '#e4e5e9'}
               />
             ))}
           </div>
         </div>
-        <span>{product.rating.rate} ({product.rating.count} reviews)</span>
+        <span>{rating.rate} ({rating.count} reviews)</span>
         <p className="product-price">${product.price}</p>
         <button className="add-to-cart-btn" onClick={handleAddToCart}>Add to Cart</button>
       </div>
     </div>
   );
 };
+
+
+
+
 
 const ProductPage = () => {
   const { cart } = useCart();
@@ -50,8 +59,16 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [showForm, setShowForm] = useState(false); // To show/hide the add product form
+  const [newProductStatus, setNewProductStatus] = useState(null); // Status of the new product
+  const [formData, setFormData] = useState({
+    title: '',
+    price: '',
+    description: '',
+    category: '',
+    image: null,
+  });
 
-  // Fetch products from the API
   useEffect(() => {
     const getProducts = async () => {
       try {
@@ -67,17 +84,81 @@ const ProductPage = () => {
     getProducts();
   }, []);
 
+  // Handle form data changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle image file change
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    setFormData((prev) => ({
+      ...prev,
+      image: file, // Store the actual file here for uploading
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
+  
+    const newProduct = {
+      ...formData,
+      price: parseFloat(formData.price),
+    };
+    console.log("newProduct",newProduct);
+  
+    try {
+      const response = await fetch('https://fakestoreapi.com/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newProduct),
+      });
+  
+      if (!response.ok) {
+        throw new Error('Failed to add product');
+      }
+  
+      const addedProduct = await response.json();
+      console.log("res", addedProduct);
+      setNewProductStatus(`Product added successfully:  ${addedProduct.title} (ID: ${addedProduct.id})`);
+  
+      // Update the products and filteredProducts arrays to include the newly added product
+      setProducts((prevProducts) => [...prevProducts, addedProduct]);
+      setFilteredProducts((prevFilteredProducts) => [...prevFilteredProducts, addedProduct]);
+      // Clear the form data
+      setFormData({
+        title: '',
+        price: '',
+        description: '',
+        category: '',
+        image: null,
+      });
+      setShowForm(false); // Close the form after submitting
+    } catch (error) {
+      setNewProductStatus('Error adding product');
+      console.error(error);
+    }
+  };
+  
+
   // Filter products by category
+  
   const handleCategoryChange = (event) => {
     const category = event.target.value;
     setSelectedCategory(category);
 
-    // Filter the products based on selected category
     if (category === '') {
-      setFilteredProducts(products); // If no category selected, show all products
+      setFilteredProducts(products); // Show all products
     } else {
       const filtered = products.filter((product) => product.category === category);
-      setFilteredProducts(filtered); // Show only the filtered products
+      setFilteredProducts(filtered); // Filter products
     }
   };
 
@@ -96,7 +177,6 @@ const ProductPage = () => {
   return (
     <div className="product-page">
       <div className="header">
-        {/* Left side: Category filter and Cart icon */}
         <div className="filter-cart-container">
           <select
             value={selectedCategory}
@@ -113,11 +193,70 @@ const ProductPage = () => {
           <div className="cart">
             <a href="/cart">
               <FontAwesomeIcon icon={faShoppingCart} />
-              {/* <span>{getCartCount()}</span> */}
+              <span>{getCartCount()}</span>
             </a>
           </div>
         </div>
+
+        <button onClick={() => setShowForm(true)} className="add-product-btn">
+          Add New Product
+        </button>
+        {newProductStatus && <p>{newProductStatus}</p>}
       </div>
+
+      {showForm && (
+        <div className="add-product-form">
+          <h3>Add a New Product</h3>
+          <form className='f1' onSubmit={handleSubmit}>
+            <label>
+              Title:
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                required
+              />
+            </label>
+            <label>
+              Price:
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                required
+              />
+            </label>
+            <label>
+              Description:
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+              />
+            </label>
+            <label>
+              Category:
+              <input
+                type="text"
+                name="category"
+                value={formData.category}
+                onChange={handleInputChange}
+                required
+              />
+            </label>
+            <label>
+              Image:
+              <input type="file" accept="image/*" onChange={handleImageChange} />
+              {formData.image && <img src={URL.createObjectURL(formData.image)} alt="Product Preview" width="100" />}
+            </label>
+            <button type="submit">Add Product</button>
+            <button type="button" onClick={() => setShowForm(false)}>Cancel</button>
+          </form>
+        </div>
+      )}
 
       <h1>Our Products</h1>
 

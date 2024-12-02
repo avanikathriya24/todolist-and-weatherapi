@@ -5,7 +5,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import './CartPage.css';
 
 const CartPage = () => {
-  const { cart, removeFromCart, removeAllFromCart } = useCart();
+  const { cart, removeFromCart, removeAllFromCart, updateQuantity } = useCart();
 
   // Calculate subtotal by summing the price * quantity for each item
   const calculateSubtotal = () => {
@@ -20,6 +20,11 @@ const CartPage = () => {
     removeAllFromCart();  // Clears all products from cart
   };
 
+  const handleQuantityChange = (productId, event) => {
+    const newQuantity = parseInt(event.target.value);
+    updateQuantity(productId, newQuantity); // Updates the quantity
+  };
+
   return (
     <div className="cart-page">
       <h1>Your Cart</h1>
@@ -28,7 +33,7 @@ const CartPage = () => {
       ) : (
         <>
           <button onClick={handleRemoveAll} className="remove-all-btn">
-            Remove All
+            Empty cart
           </button>
           <div className="cart-items">
             {cart.map((product) => (
@@ -36,7 +41,18 @@ const CartPage = () => {
                 <img src={product.image} alt={product.title} />
                 <div className="cart-item-info">
                   <h3>{product.title}</h3>
-                  <p>${product.price} x {product.quantity}</p> {/* Shows price and quantity */}
+                  <p>${product.price}</p>
+                  {/* Quantity dropdown */}
+                  <select 
+                    value={product.quantity} 
+                    onChange={(e) => handleQuantityChange(product.id, e)}
+                    className="quantity-select"
+                  >
+                    {[...Array(10).keys()].map(i => (
+                      <option key={i+1} value={i+1}>{i+1}</option> // Create options from 1 to 10
+                    ))}
+                  </select>
+                  <p>Total: ${product.price * product.quantity}</p>
                 </div>
                 <button onClick={() => handleRemove(product.id)}>
                   <FontAwesomeIcon icon={faTrash} />
